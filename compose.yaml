@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:17.12
+    environment:
+      POSTGRES_DB: railway_ticket_db
+      POSTGRES_USER: railway_app
+      POSTGRES_PASSWORD: ${RAILWAY_DB_PASSWORD:?Set RAILWAY_DB_PASSWORD in .env}
+      TZ: Asia/Kolkata
+    volumes:
+      - railway_data:/var/lib/postgresql/data
+      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./src/main/resources/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U railway_app -d railway_ticket_db']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  app:
+    build: .
+    environment:
+      RAILWAY_DB_URL: jdbc:postgresql://db:5432/railway_ticket_db
+      RAILWAY_DB_USER: railway_app
+      RAILWAY_DB_PASSWORD: ${RAILWAY_DB_PASSWORD:?Set RAILWAY_DB_PASSWORD in .env}
+      RAILWAY_ADMIN_EMAIL: ${RAILWAY_ADMIN_EMAIL:-admin@example.test}
+      RAILWAY_ADMIN_PASSWORD: ${RAILWAY_ADMIN_PASSWORD:?Set RAILWAY_ADMIN_PASSWORD in .env (12+ characters)}
+      TZ: Asia/Kolkata
+      JAVA_OPTS: -Duser.timezone=Asia/Kolkata
+    ports:
+      - '127.0.0.1:${RAILWAY_HTTP_PORT:-8080}:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://localhost:8080/railway-ticket-demo/app/']
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+volumes:
+  railway_data:

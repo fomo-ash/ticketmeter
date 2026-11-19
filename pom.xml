@@ -18,9 +18,38 @@
   <build>
     <finalName>railway-ticket-demo</finalName>
     <plugins>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-clean-plugin</artifactId><version>3.4.0</version></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.3.1</version></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.13.0</version></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.2</version></plugin>
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-war-plugin</artifactId><version>3.4.0</version></plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>integration</id>
+      <dependencyManagement><dependencies>
+        <dependency><groupId>io.zonky.test.postgres</groupId><artifactId>embedded-postgres-binaries-bom</artifactId><version>17.12.0</version><type>pom</type><scope>import</scope></dependency>
+      </dependencies></dependencyManagement>
+      <dependencies>
+        <dependency><groupId>org.slf4j</groupId><artifactId>slf4j-simple</artifactId><version>1.7.36</version><scope>test</scope></dependency>
+        <dependency><groupId>io.zonky.test</groupId><artifactId>embedded-postgres</artifactId><version>2.1.0</version><scope>test</scope></dependency>
+        <dependency><groupId>org.apache.tomcat.embed</groupId><artifactId>tomcat-embed-core</artifactId><version>10.1.61</version><scope>test</scope></dependency>
+        <dependency><groupId>org.apache.tomcat.embed</groupId><artifactId>tomcat-embed-jasper</artifactId><version>10.1.61</version><scope>test</scope></dependency>
+      </dependencies>
+      <build><plugins>
+        <plugin><groupId>org.codehaus.mojo</groupId><artifactId>build-helper-maven-plugin</artifactId><version>3.6.0</version>
+          <executions><execution><id>integration-tests</id><phase>generate-test-sources</phase><goals><goal>add-test-source</goal></goals><configuration><sources><source>src/it/java</source></sources></configuration></execution></executions>
+        </plugin>
+        <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><version>3.5.2</version>
+          <configuration><environmentVariables>
+            <RAILWAY_DB_URL>jdbc:postgresql://localhost:55439/postgres</RAILWAY_DB_URL>
+            <RAILWAY_DB_USER>postgres</RAILWAY_DB_USER><RAILWAY_DB_PASSWORD>postgres</RAILWAY_DB_PASSWORD>
+            <RAILWAY_ADMIN_EMAIL>admin@example.test</RAILWAY_ADMIN_EMAIL><RAILWAY_ADMIN_PASSWORD>integration-admin-password</RAILWAY_ADMIN_PASSWORD>
+          </environmentVariables></configuration>
+          <executions><execution><goals><goal>integration-test</goal><goal>verify</goal></goals></execution></executions>
+        </plugin>
+      </plugins></build>
+    </profile>
+  </profiles>
 </project>

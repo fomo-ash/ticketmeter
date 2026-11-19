@@ -19,15 +19,15 @@ public final class AppServlet extends HttpServlet {
     private final BookingService bookingService=new BookingService();
 
     @Override public void init() throws ServletException {
-        try { repo.createAdminIfConfigured(); }
-        catch(SQLException e) { throw new ServletException("Database connection or schema unavailable",e); }
+        try { repo.stations();repo.createAdminIfConfigured(); }
+        catch(SQLException | IllegalArgumentException e) { throw new ServletException("Check database connection, schema, and admin configuration",e); }
     }
 
     @Override protected void doGet(HttpServletRequest req,HttpServletResponse resp) throws ServletException,IOException {
         req.setCharacterEncoding("UTF-8");
         String path=path(req);
         try {
-            if(path.equals("/logout")) { req.getSession().invalidate();redirect(req,resp,"/");return; }
+            if(path.equals("/logout")) { resp.sendError(405);return; }
             User user=user(req);
             if(path.equals("/bookings") && user==null) { redirect(req,resp,"/login");return; }
             if(path.equals("/complaints") && user==null) { redirect(req,resp,"/login");return; }
@@ -55,7 +55,7 @@ public final class AppServlet extends HttpServlet {
             if(!path.equals("/")&&!path.equals("/search")&&!path.equals("/login")&&!path.equals("/register")&&!path.equals("/book")&&!path.equals("/bookings")&&!path.equals("/complaints")&&!path.equals("/admin")) { resp.sendError(404);return; }
             req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp);
         } catch(SQLException e) { throw new ServletException(e); }
-        catch(RuntimeException e) { req.setAttribute("error",e.getMessage());req.setAttribute("page","/");try { req.setAttribute("stations",repo.stations()); } catch(SQLException ex) { throw new ServletException(ex); }req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp); }
+        catch(RuntimeException e) { resp.setStatus(400);req.setAttribute("csrf",csrf(req));req.setAttribute("error","Enter valid stations, date, and train details.");req.setAttribute("page","/");try { req.setAttribute("stations",repo.stations()); } catch(SQLException ex) { throw new ServletException(ex); }req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp); }
     }
 
     @Override protected void doPost(HttpServletRequest req,HttpServletResponse resp) throws ServletException,IOException {
@@ -64,13 +64,14 @@ public final class AppServlet extends HttpServlet {
         String path=path(req);
         try {
             switch(path) {
+                case "/logout" -> { req.getSession().invalidate();redirect(req,resp,"/"); }
                 case "/register" -> {
-                    String name=required(req,"name",100),email=required(req,"email",255),password=required(req,"password",128);
+                    String name=required(req,"name",100),email=required(req,"email",255),password=password(req);
                     if(!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$") || password.length()<12)throw new IllegalArgumentException("Enter a valid email and a password of at least 12 characters.");
                     loginSession(req,repo.register(name,email,password));redirect(req,resp,"/bookings");
                 }
                 case "/login" -> {
-                    User u=repo.login(required(req,"email",255),required(req,"password",128)).orElseThrow(()->new IllegalArgumentException("Invalid email or password."));
+                    User u=repo.login(required(req,"email",255),password(req)).orElseThrow(()->new IllegalArgumentException("Invalid email or password."));
                     loginSession(req,u);redirect(req,resp,admin(u)?"/admin":"/bookings");
                 }
                 case "/book" -> {
@@ -104,6 +105,7 @@ public final class AppServlet extends HttpServlet {
                     int order=Integer.parseInt(req.getParameter("order")),offset=Integer.parseInt(req.getParameter("dayOffset"));
                     if(order<1 || offset<0 || offset>7)throw new IllegalArgumentException("Enter a valid stop order and day offset.");
                     String arrival=req.getParameter("arrival"),departure=req.getParameter("departure");
+                    if((arrival==null || arrival.isBlank()) && (departure==null || departure.isBlank()))throw new IllegalArgumentException("Enter at least an arrival or departure time.");
                     repo.addStop(required(req,"number",10),number(req.getParameter("station")),order,arrival==null||arrival.isBlank()?null:arrival,departure==null||departure.isBlank()?null:departure,offset);
                     req.getSession().setAttribute("flash","Route stop saved.");redirect(req,resp,"/admin");
                 }
@@ -126,18 +128,19 @@ public final class AppServlet extends HttpServlet {
         } catch(SQLException e) {
             if("23505".equals(e.getSQLState())) showError(req,resp,path,"That account or schedule already exists.");
             else throw new ServletException(e);
-        } catch(RuntimeException e) { showError(req,resp,path,e instanceof NumberFormatException?"Enter valid numbers.":e.getMessage()); }
+        } catch(RuntimeException e) { showError(req,resp,path,e instanceof java.time.DateTimeException?"Enter a valid date or time.":e instanceof NumberFormatException?"Enter valid numbers.":e.getMessage()); }
     }
 
     private void showError(HttpServletRequest req,HttpServletResponse resp,String path,String error) throws ServletException,IOException {
         req.setAttribute("error",error);req.setAttribute("page",path.startsWith("/admin/")?"/admin":path.equals("/cancel")?"/bookings":path);
         req.setAttribute("user",user(req));req.setAttribute("csrf",csrf(req));
-        try { req.setAttribute("stations",repo.stations());if(path.startsWith("/admin/")){req.setAttribute("trains",repo.trains());req.setAttribute("bookings",repo.bookings(user(req).id(),true));req.setAttribute("complaints",repo.complaints(user(req).id(),true));}if(path.equals("/cancel"))req.setAttribute("bookings",repo.bookings(user(req).id(),false));if(path.equals("/complaints"))req.setAttribute("complaints",repo.complaints(user(req).id(),false));if(path.equals("/book")){long run=number(req.getParameter("run")),origin=number(req.getParameter("origin")),destination=number(req.getParameter("destination"));req.setAttribute("run",repo.run(run,origin,destination).orElse(null));req.setAttribute("originId",origin);req.setAttribute("destinationId",destination);} }
+        try { req.setAttribute("stations",repo.stations());if(path.startsWith("/admin/")){req.setAttribute("trains",repo.trains());req.setAttribute("bookings",repo.bookings(user(req).id(),true));req.setAttribute("complaints",repo.complaints(user(req).id(),true));}if(path.equals("/cancel"))req.setAttribute("bookings",repo.bookings(user(req).id(),false));if(path.equals("/complaints"))req.setAttribute("complaints",repo.complaints(user(req).id(),false));if(path.equals("/book")){try { long run=number(req.getParameter("run")),origin=number(req.getParameter("origin")),destination=number(req.getParameter("destination"));req.setAttribute("run",repo.run(run,origin,destination).orElse(null));if(req.getAttribute("run")==null)req.setAttribute("page","/");req.setAttribute("originId",origin);req.setAttribute("destinationId",destination); } catch (NumberFormatException invalid) { req.setAttribute("page","/"); }} }
         catch(SQLException e) { throw new ServletException(e); }
         resp.setStatus(400);req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp);
     }
     private static String path(HttpServletRequest r) { return r.getPathInfo()==null?"/":r.getPathInfo(); }
     private static long number(String value) { return Long.parseLong(value); }
+    private static String password(HttpServletRequest r) { String v=r.getParameter("password");if(v==null || v.isBlank() || v.length()>128)throw new IllegalArgumentException("Enter a valid password (maximum 128 characters).");return v; }
     private static String required(HttpServletRequest r,String field,int max) { String v=r.getParameter(field);if(v==null || v.isBlank() || v.trim().length()>max)throw new IllegalArgumentException("Enter a valid "+field+".");return v.trim(); }
     private static User user(HttpServletRequest r) { return (User)r.getSession().getAttribute("user"); }
     private static boolean admin(User u) { return u!=null && "ADMIN".equals(u.role()); }

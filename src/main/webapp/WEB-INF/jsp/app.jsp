@@ -11,7 +11,7 @@
 <header class="top"><div class="wrap nav"><a class="brand" href="${pageContext.request.contextPath}/app/">Railway Ticket Demo</a><nav>
   <a href="${pageContext.request.contextPath}/app/">Search</a>
   <c:choose><c:when test="${empty user}"><a href="${pageContext.request.contextPath}/app/login">Login</a><a href="${pageContext.request.contextPath}/app/register">Register</a></c:when>
-  <c:otherwise><a href="${pageContext.request.contextPath}/app/bookings">My bookings</a><a href="${pageContext.request.contextPath}/app/complaints">Complaints</a><c:if test="${user.role == 'ADMIN'}"><a href="${pageContext.request.contextPath}/app/admin">Admin</a></c:if><a href="${pageContext.request.contextPath}/app/logout">Logout</a></c:otherwise></c:choose>
+  <c:otherwise><a href="${pageContext.request.contextPath}/app/bookings">My bookings</a><a href="${pageContext.request.contextPath}/app/complaints">Complaints</a><c:if test="${user.role == 'ADMIN'}"><a href="${pageContext.request.contextPath}/app/admin">Admin</a></c:if><form method="post" action="${pageContext.request.contextPath}/app/logout"><input type="hidden" name="csrf" value="${csrf}"><button type="submit">Logout</button></form></c:otherwise></c:choose>
 </nav></div></header>
 <main class="wrap">
   <div class="notice">Academic demonstration only. Bookings and PNRs are not valid Indian Railways tickets. No payment is collected.</div>

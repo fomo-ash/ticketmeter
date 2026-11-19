@@ -20,10 +20,10 @@ public final class BookingService {
                         capacity=r.getInt(1);fare=r.getBigDecimal(2);
                     }
                 }
-                String routeSql="SELECT 1 FROM train_runs r JOIN train_stops a ON a.train_id=r.train_id AND a.station_id=? JOIN train_stops b ON b.train_id=r.train_id AND b.station_id=? AND b.stop_order>a.stop_order WHERE r.id=?";
+                String routeSql="SELECT 1 FROM train_runs r JOIN train_stops a ON a.train_id=r.train_id AND a.station_id=? JOIN train_stops b ON b.train_id=r.train_id AND b.station_id=? AND b.stop_order>a.stop_order WHERE r.id=? AND r.service_date+a.day_offset+a.departure>localtimestamp";
                 try(PreparedStatement p=c.prepareStatement(routeSql)) {
                     p.setLong(1,originId);p.setLong(2,destinationId);p.setLong(3,runId);
-                    try(ResultSet r=p.executeQuery()) { if(!r.next())throw new IllegalArgumentException("Invalid route for this train."); }
+                    try(ResultSet r=p.executeQuery()) { if(!r.next())throw new IllegalArgumentException("Invalid route, missing departure time, or the train has already departed."); }
                 }
                 int seat;
                 String seatSql="SELECT s FROM generate_series(1,?) s WHERE NOT EXISTS (SELECT 1 FROM bookings b WHERE b.run_id=? AND b.seat_number=s AND b.status='CONFIRMED') ORDER BY s LIMIT 1";

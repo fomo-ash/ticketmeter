@@ -5,3 +5,8 @@ target/
 .env
 local.properties
 *.log
+.agents
+.aws
+.codex
+.mvn
+

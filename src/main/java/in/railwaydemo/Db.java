@@ -12,6 +12,9 @@ public final class Db {
         String user = System.getenv().getOrDefault("RAILWAY_DB_USER", "railway_app");
         String password = System.getenv("RAILWAY_DB_PASSWORD");
         if (password == null || password.isBlank()) throw new SQLException("RAILWAY_DB_PASSWORD is not set");
+        // Tomcat may discover JDBC providers before the WAR class loader exists.
+        try { Class.forName("org.postgresql.Driver"); }
+        catch (ClassNotFoundException e) { throw new SQLException("PostgreSQL JDBC driver is missing from the application", e); }
         return DriverManager.getConnection(url, user, password);
     }
 }

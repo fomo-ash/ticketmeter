@@ -141,3 +141,7 @@ After booking acceptance, add a `complaints` table with ID, user ID, optional bo
 - [PostgreSQL release notes](https://www.postgresql.org/docs/release/)
 - [PostgreSQL Windows installation](https://www.postgresql.org/download/windows/)
 - [PostgreSQL JDBC driver downloads](https://jdbc.postgresql.org/download/)
+
+## 11. Implementation verification update — 19 November 2026
+
+See [VERIFICATION.md](VERIFICATION.md) for the code review, eight passing automated tests, fixes, and the remaining differences from this plan. [README.md](README.md) now includes a Docker Compose laptop setup, Maven wrapper commands, and a native PostgreSQL/Tomcat alternative. Docker startup and visual browser checks still need validation on a machine with those capabilities; this plan's full acceptance checklist is not yet claimed complete.

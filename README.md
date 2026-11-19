@@ -1,77 +1,144 @@
 # Railway Ticket Demo
 
-A Servlet/JSP/JDBC/PostgreSQL academic project. Tickets and PNRs are **demo only** and are not valid Indian Railways reservations. No payment is collected.
+A Java Servlet/JSP/JDBC/PostgreSQL academic project. Tickets and PNRs are **demo only**, not valid Indian Railways reservations. No payment is collected.
 
-See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the team plan, versions, database model, and acceptance checklist.
+The booking, accounts, schedule administration, and complaints flows are implemented. See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the intended scope and [VERIFICATION.md](VERIFICATION.md) for checks, fixes, and remaining gaps.
 
-## Required tools
+## Run on your laptop with Docker
 
-- JDK 17
-- Apache Maven 3.9.16
-- Apache Tomcat 10.1.61
-- PostgreSQL 17.12 (pgAdmin optional but useful)
+Install Docker with the Compose v2 command (`docker compose`) and start its engine. On Windows/macOS, use Docker Desktop with Linux containers. This path builds Java inside a container: you do not need to install Java, Maven, Tomcat, PostgreSQL, JDBC, or MySQL separately.
 
-The PostgreSQL JDBC driver 42.7.14 and Jakarta libraries are downloaded by Maven. MySQL is not needed.
+From the project folder:
 
-## Database setup
+```powershell
+# Windows PowerShell
+Copy-Item .env.example .env
+notepad .env
+```
 
-Create a local database and role using pgAdmin or `psql` as a PostgreSQL administrator. Choose your own password; do not commit it.
+```sh
+# Linux/macOS
+cp .env.example .env
+# Open .env in your editor.
+```
+
+Replace both example passwords in `.env` with your own values. Use a 12–128 character admin password. For straightforward Compose parsing, use letters, digits, and hyphens in these local passwords. Leave the database URL alone: Compose configures JDBC to use the `db` service.
+
+Then, on any platform:
+
+```sh
+docker compose up --build -d --wait
+```
+
+Open **http://localhost:8080/railway-ticket-demo/**. Sign in with the admin email/password from `.env`, or register a passenger. Startup creates the schema, sample stations, two fictional trains, and runs for tomorrow through the next 14 days. Search **New Delhi → Lucknow** or **New Delhi → Mumbai**.
+
+Useful commands:
+
+```sh
+docker compose ps
+docker compose logs --tail=100 app db
+docker compose stop
+# Start again, retaining your users and bookings:
+docker compose up -d --wait
+# After changing Java/JSP/CSS or pom.xml:
+docker compose up --build -d --wait
+```
+
+PostgreSQL data lives in the `railway_data` Docker volume. Ordinary stop/down commands retain it. **Do not use `docker compose down -v` unless you intend to erase the demo database.** Database initialization scripts run only when that volume is first created. To refresh expired sample dates without erasing bookings:
+
+```sh
+docker compose exec db psql -v ON_ERROR_STOP=1 -U railway_app -d railway_ticket_db -f /docker-entrypoint-initdb.d/02-seed.sql
+```
+
+The app is exposed only on localhost; PostgreSQL is accessible inside Compose. To inspect it, run:
+
+```sh
+docker compose exec db psql -U railway_app -d railway_ticket_db
+```
+
+## Build and test without Docker
+
+Install a JDK (17 is the project target; this workspace also builds with 21). The committed Maven wrapper downloads Maven 3.9.16 on first use. Internet access is needed for the first build.
+
+```powershell
+# Windows PowerShell
+.\mvnw.cmd clean verify
+.\mvnw.cmd -Pintegration clean verify
+```
+
+```sh
+# Linux/macOS
+./mvnw clean verify
+./mvnw -Pintegration clean verify
+```
+
+The default build runs password unit tests and produces `target/railway-ticket-demo.war`. The `integration` profile additionally launches **temporary PostgreSQL 17.12 and Tomcat 10.1.61**, loads schema/seed twice, deploys the WAR, compiles JSPs, and exercises the HTTP and JDBC flows. It does not use or modify your configured application database. It overrides database/admin environment variables in its test subprocess. Port **55439 must be free**; the HTTP test port is chosen automatically. Run as a regular user (PostgreSQL refuses to initialize as root). Native PostgreSQL binaries need a supported OS/architecture and permission to launch processes/open localhost ports. These integration checks have been run on Linux x86-64; Windows/macOS execution still needs validation.
+
+## Native PostgreSQL and Tomcat setup
+
+If you prefer running the services directly, install JDK 17, PostgreSQL 17.12, and Tomcat 10.1.61. Maven supplies PostgreSQL JDBC driver 42.7.14, Jakarta Servlet 6.0, and Jakarta Tags; there is no separate JDBC setup. Do not use Tomcat 9 (`javax.servlet`) or MySQL for this app.
+
+As a PostgreSQL administrator, create a dedicated role/database. Choose your own password:
 
 ```sql
 CREATE ROLE railway_app LOGIN PASSWORD 'choose-a-strong-local-password';
 CREATE DATABASE railway_ticket_db OWNER railway_app;
+ALTER DATABASE railway_ticket_db SET timezone TO 'Asia/Kolkata';
 ```
 
-Run the SQL files in order **as `railway_app` connected to `railway_ticket_db`**:
+Run these commands from the project directory. `-h localhost` uses password authentication rather than Unix peer authentication. Enter the database password when prompted:
 
-```powershell
-psql -U railway_app -d railway_ticket_db -f src/main/resources/db/schema.sql
-psql -U railway_app -d railway_ticket_db -f src/main/resources/db/seed.sql
+```sh
+psql -h localhost -U railway_app -d railway_ticket_db -v ON_ERROR_STOP=1 -f src/main/resources/db/schema.sql
+psql -h localhost -U railway_app -d railway_ticket_db -v ON_ERROR_STOP=1 -f src/main/resources/db/seed.sql
 ```
 
-The seed provides five stations, two fictional demo trains, and runs for the next 14 days. Re-running it does not duplicate rows.
-
-## Local configuration
-
-Set these environment variables in the terminal or Tomcat service configuration **before starting Tomcat**:
+Set environment variables in the terminal **that will start Tomcat**:
 
 ```powershell
+# Windows PowerShell
 $env:RAILWAY_DB_URL = 'jdbc:postgresql://localhost:5432/railway_ticket_db'
 $env:RAILWAY_DB_USER = 'railway_app'
-$env:RAILWAY_DB_PASSWORD = '<your local password>'
+$env:RAILWAY_DB_PASSWORD = '<your database password>'
 $env:RAILWAY_ADMIN_EMAIL = 'admin@example.test'
-$env:RAILWAY_ADMIN_PASSWORD = '<choose at least 12 characters>'
+$env:RAILWAY_ADMIN_PASSWORD = '<your 12–128 character admin password>'
+$env:JAVA_OPTS = '-Duser.timezone=Asia/Kolkata'
+.\mvnw.cmd clean verify
+Copy-Item target/railway-ticket-demo.war "$env:CATALINA_HOME/webapps/"
+& "$env:CATALINA_HOME/bin/catalina.bat" run
 ```
 
-The application creates the admin account on first startup if both admin variables are present. It does not reset an existing admin password on subsequent starts. If Tomcat runs as a Windows service, configure variables for that service rather than only in PowerShell.
-
-## Build and run
-
-```powershell
-mvn clean package
+```sh
+# Linux/macOS; set CATALINA_HOME to your extracted Tomcat directory first.
+export RAILWAY_DB_URL='jdbc:postgresql://localhost:5432/railway_ticket_db'
+export RAILWAY_DB_USER='railway_app'
+export RAILWAY_DB_PASSWORD='<your database password>'
+export RAILWAY_ADMIN_EMAIL='admin@example.test'
+export RAILWAY_ADMIN_PASSWORD='<your 12–128 character admin password>'
+export JAVA_OPTS='-Duser.timezone=Asia/Kolkata'
+./mvnw clean verify
+cp target/railway-ticket-demo.war "$CATALINA_HOME/webapps/"
+"$CATALINA_HOME/bin/catalina.sh" run
 ```
 
-Copy `target/railway-ticket-demo.war` to Tomcat's `webapps` folder and start Tomcat. Visit:
+Visit the same URL as the Docker path. A native Tomcat Windows service needs these variables configured for the service; setting them in PowerShell alone does not affect an already running service. Native Tomcat does not read `.env` automatically.
 
-```text
-http://localhost:8080/railway-ticket-demo/
-```
+Admin bootstrap creates the account only if its email does not already exist. Changing the environment password later does not reset an existing account or promote a passenger with the same email. Choose a distinct admin email before first startup. Both admin variables may be omitted to run without bootstrapping an admin.
 
-The root page forwards to `/app/`. If Tomcat uses another port, replace `8080`.
+## Demo checklist
 
-## Demo flow
+1. Register a passenger with a 12+ character password. Log out and back in.
+2. Search New Delhi → Lucknow for tomorrow; note available seats and fare.
+3. Book one passenger, verify the demo PNR, passenger, fare, and seat in My bookings.
+4. Cancel; check that the seat becomes available again.
+5. Submit a complaint linked to your PNR. Log in as admin, respond, then check the passenger's complaint status.
+6. As admin, add a station, train, route stops, and future run. Search the new route as a passenger.
 
-1. Register a passenger with a password of at least 12 characters.
-2. Search New Delhi → Lucknow or New Delhi → Mumbai for a date within the next 14 days.
-3. Book one passenger, note the demo PNR and assigned seat, then view **My bookings**.
-4. Cancel the booking and search again to see the seat return to availability.
-5. Submit a complaint and see its status. Log in as admin to respond, then check the passenger view again.
-6. As admin, add a future run, station, train, and route stops.
+## Troubleshooting
 
-## Current implementation notes
-
-- One booking contains one passenger and one seat. A user can make multiple bookings.
-- Seat assignment uses a PostgreSQL row lock and a unique partial index to prevent double booking.
-- Passwords use PBKDF2-HMAC-SHA256 with per-user salt.
-- The app uses `jakarta.servlet.*`, which matches Tomcat 10.1.
-- Passengers can submit complaints, optionally linked to their own booking; admins can respond and update status.
+- **Port 8080 in use:** set `RAILWAY_HTTP_PORT=8081` in `.env`, rerun Compose, and open port 8081. Native Tomcat's port is configured in `conf/server.xml`.
+- **Docker command/engine missing:** install/start Docker or use the native setup above. Check `docker version` and `docker compose version`.
+- **Database authentication fails after changing `.env`:** an existing volume retains its original database password. Restore the original value or deliberately change the role password inside PostgreSQL; editing `.env` alone does not update the database role.
+- **App fails to start:** inspect `docker compose logs app db` or native Tomcat logs. Confirm password, database name, schema, and both admin variables. Database credentials must be present in the Tomcat process environment.
+- **No search results:** choose a seeded route in the forward direction and a date in the next 14 days; refresh the seed as above if needed.
+- **First build/download fails:** check internet/proxy settings. Maven downloads dependencies; Docker also downloads three base images.
