@@ -1,4 +1,4 @@
-# Railway Ticket Demo
+# TKTMeter
 
 A Java Servlet/JSP/JDBC/PostgreSQL academic project. Tickets and PNRs are **demo only**, not valid Indian Railways reservations. No payment is collected.
 
@@ -30,7 +30,7 @@ Then, on any platform:
 docker compose up --build -d --wait
 ```
 
-Open **http://localhost:8080/railway-ticket-demo/** (or the port set by `RAILWAY_HTTP_PORT` in `.env`). Sign in with the admin email/password from `.env`, or register a passenger. Startup creates the schema, sample stations, eight fictional trains, and runs for tomorrow through the next 14 days. Search **New Delhi → Lucknow**, **New Delhi → Bhubaneswar**, or **Bhubaneswar → Howrah**. See [demo flow.md](demo%20flow.md) for a guided walkthrough.
+Open **http://localhost:8080/tktmeter/** (or the port set by `RAILWAY_HTTP_PORT` in `.env`). Sign in with the admin email/password from `.env`, or register a passenger. Startup creates the schema, sample stations, eight fictional trains, and runs for tomorrow through the next 14 days. Search **New Delhi → Lucknow**, **New Delhi → Bhubaneswar**, or **Bhubaneswar → Howrah**. See [demo flow.md](demo%20flow.md) for a guided walkthrough.
 
 Useful commands:
 
@@ -72,7 +72,7 @@ Install a JDK (17 is the project target; this workspace also builds with 21). Th
 ./mvnw -Pintegration clean verify
 ```
 
-The default build runs password unit tests and produces `target/railway-ticket-demo.war`. The `integration` profile additionally launches **temporary PostgreSQL 17.12 and Tomcat 10.1.61**, loads schema/seed twice, deploys the WAR, compiles JSPs, and exercises the HTTP and JDBC flows. It does not use or modify your configured application database. It overrides database/admin environment variables in its test subprocess. Port **55439 must be free**; the HTTP test port is chosen automatically. Run as a regular user (PostgreSQL refuses to initialize as root). Native PostgreSQL binaries need a supported OS/architecture and permission to launch processes/open localhost ports. These integration checks have been run on Linux x86-64; Windows/macOS execution still needs validation.
+The default build runs password unit tests and produces `target/tktmeter.war`. The `integration` profile additionally launches **temporary PostgreSQL 17.12 and Tomcat 10.1.61**, loads schema/seed twice, deploys the WAR, compiles JSPs, and exercises the HTTP and JDBC flows. It does not use or modify your configured application database. It overrides database/admin environment variables in its test subprocess. Port **55439 must be free**; the HTTP test port is chosen automatically. Run as a regular user (PostgreSQL refuses to initialize as root). Native PostgreSQL binaries need a supported OS/architecture and permission to launch processes/open localhost ports. These integration checks have been run on Linux x86-64; Windows/macOS execution still needs validation.
 
 ## Native PostgreSQL and Tomcat setup
 
@@ -104,7 +104,7 @@ $env:RAILWAY_ADMIN_EMAIL = 'admin@example.test'
 $env:RAILWAY_ADMIN_PASSWORD = '<your 12–128 character admin password>'
 $env:JAVA_OPTS = '-Duser.timezone=Asia/Kolkata'
 .\mvnw.cmd clean verify
-Copy-Item target/railway-ticket-demo.war "$env:CATALINA_HOME/webapps/"
+Copy-Item target/tktmeter.war "$env:CATALINA_HOME/webapps/"
 & "$env:CATALINA_HOME/bin/catalina.bat" run
 ```
 
@@ -117,7 +117,7 @@ export RAILWAY_ADMIN_EMAIL='admin@example.test'
 export RAILWAY_ADMIN_PASSWORD='<your 12–128 character admin password>'
 export JAVA_OPTS='-Duser.timezone=Asia/Kolkata'
 ./mvnw clean verify
-cp target/railway-ticket-demo.war "$CATALINA_HOME/webapps/"
+cp target/tktmeter.war "$CATALINA_HOME/webapps/"
 "$CATALINA_HOME/bin/catalina.sh" run
 ```
 

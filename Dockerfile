@@ -5,5 +5,5 @@ COPY src ./src
 RUN mvn -B clean package
 
 FROM tomcat:10.1.61-jdk17-temurin
-COPY --from=build /build/target/railway-ticket-demo.war /usr/local/tomcat/webapps/railway-ticket-demo.war
+COPY --from=build /build/target/tktmeter.war /usr/local/tomcat/webapps/tktmeter.war
 EXPOSE 8080

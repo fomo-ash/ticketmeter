@@ -31,7 +31,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: [CMD, curl, -fsS, 'http://localhost:8080/railway-ticket-demo/app/']
+      test: [CMD, curl, -fsS, 'http://localhost:8080/tktmeter/app/']
       interval: 10s
       timeout: 5s
       start_period: 30s

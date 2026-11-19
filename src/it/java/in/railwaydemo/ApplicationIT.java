@@ -38,9 +38,9 @@ class ApplicationIT {
         Files.createDirectories(baseDir.resolve("webapps"));
         tomcat.setBaseDir(baseDir.toString());
         tomcat.setPort(0);tomcat.getConnector();
-        tomcat.addWebapp("/railway-ticket-demo", Path.of("target/railway-ticket-demo.war").toAbsolutePath().toString()).addWelcomeFile("index.jsp");
+        tomcat.addWebapp("/tktmeter", Path.of("target/tktmeter.war").toAbsolutePath().toString()).addWelcomeFile("index.jsp");
         tomcat.start();
-        base="http://localhost:"+tomcat.getConnector().getLocalPort()+"/railway-ticket-demo/app";
+        base="http://localhost:"+tomcat.getConnector().getLocalPort()+"/tktmeter/app";
     }
     @AfterAll static void stop() throws Exception {
         try { if(tomcat!=null){tomcat.stop();tomcat.destroy();} } finally { if(pg!=null)pg.close(); }

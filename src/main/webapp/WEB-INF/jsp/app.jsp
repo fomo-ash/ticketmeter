@@ -4,12 +4,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Railway Ticket Demo</title>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/style.css">
+  <title>TKTMeter</title>
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/style.css?v=4">
 </head>
 <body>
 <header class="top"><div class="wrap nav">
-  <a class="brand" href="${pageContext.request.contextPath}/app/"><span class="brand-icon" aria-hidden="true">↗</span><span>Railway<span class="brand-accent">Demo</span><small>Journey planner</small></span></a>
+  <a class="brand" href="${pageContext.request.contextPath}/app/">TKT<span class="brand-accent">Meter</span></a>
   <nav aria-label="Main navigation">
     <a href="${pageContext.request.contextPath}/app/">Find trains</a>
     <c:choose><c:when test="${empty user}"><a href="${pageContext.request.contextPath}/app/login">Log in</a><a class="nav-cta" href="${pageContext.request.contextPath}/app/register">Create account</a></c:when>
@@ -56,5 +56,5 @@
   </c:if>
   <div class="demo-note">Academic demonstration only. Bookings and PNRs are not valid Indian Railways tickets. No payment is collected.</div>
 </main>
-<footer class="wrap">Railway Ticket Demo · For learning only</footer>
+<footer class="wrap">TKTMeter · For learning only</footer>
 </body></html>
