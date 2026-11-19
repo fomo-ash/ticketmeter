@@ -30,7 +30,7 @@ Then, on any platform:
 docker compose up --build -d --wait
 ```
 
-Open **http://localhost:8080/railway-ticket-demo/**. Sign in with the admin email/password from `.env`, or register a passenger. Startup creates the schema, sample stations, two fictional trains, and runs for tomorrow through the next 14 days. Search **New Delhi → Lucknow** or **New Delhi → Mumbai**.
+Open **http://localhost:8080/railway-ticket-demo/** (or the port set by `RAILWAY_HTTP_PORT` in `.env`). Sign in with the admin email/password from `.env`, or register a passenger. Startup creates the schema, sample stations, eight fictional trains, and runs for tomorrow through the next 14 days. Search **New Delhi → Lucknow**, **New Delhi → Bhubaneswar**, or **Bhubaneswar → Howrah**. See [demo flow.md](demo%20flow.md) for a guided walkthrough.
 
 Useful commands:
 

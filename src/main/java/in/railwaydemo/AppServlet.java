@@ -36,6 +36,7 @@ public final class AppServlet extends HttpServlet {
             req.setAttribute("page",path);
             req.setAttribute("stations",repo.stations());
             req.setAttribute("csrf",csrf(req));
+            req.setAttribute("minTravelDate",LocalDate.now().plusDays(1));
             if(path.equals("/bookings"))req.setAttribute("bookings",repo.bookings(user.id(),false));
             if(path.equals("/complaints"))req.setAttribute("complaints",repo.complaints(user.id(),false));
             if(path.equals("/admin")) { req.setAttribute("bookings",repo.bookings(user.id(),true));req.setAttribute("complaints",repo.complaints(user.id(),true));req.setAttribute("trains",repo.trains()); }
@@ -53,9 +54,10 @@ public final class AppServlet extends HttpServlet {
                 req.setAttribute("originId",origin);req.setAttribute("destinationId",destination);
             }
             if(!path.equals("/")&&!path.equals("/search")&&!path.equals("/login")&&!path.equals("/register")&&!path.equals("/book")&&!path.equals("/bookings")&&!path.equals("/complaints")&&!path.equals("/admin")) { resp.sendError(404);return; }
+            if(path.equals("/"))req.setAttribute("travelDate",LocalDate.now().plusDays(1));
             req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp);
         } catch(SQLException e) { throw new ServletException(e); }
-        catch(RuntimeException e) { resp.setStatus(400);req.setAttribute("csrf",csrf(req));req.setAttribute("error","Enter valid stations, date, and train details.");req.setAttribute("page","/");try { req.setAttribute("stations",repo.stations()); } catch(SQLException ex) { throw new ServletException(ex); }req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp); }
+        catch(RuntimeException e) { resp.setStatus(400);req.setAttribute("csrf",csrf(req));req.setAttribute("error","Enter valid stations, date, and train details.");req.setAttribute("page","/");req.setAttribute("minTravelDate",LocalDate.now().plusDays(1));req.setAttribute("travelDate",LocalDate.now().plusDays(1));try { req.setAttribute("stations",repo.stations()); } catch(SQLException ex) { throw new ServletException(ex); }req.getRequestDispatcher("/WEB-INF/jsp/app.jsp").forward(req,resp); }
     }
 
     @Override protected void doPost(HttpServletRequest req,HttpServletResponse resp) throws ServletException,IOException {
